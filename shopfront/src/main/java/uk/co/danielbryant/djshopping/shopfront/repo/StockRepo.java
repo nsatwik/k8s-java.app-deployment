@@ -1,6 +1,6 @@
 package uk.co.danielbryant.djshopping.shopfront.repo;
 
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class StockRepo {
     @Qualifier(value = "stdRestTemplate")
     private RestTemplate restTemplate;
 
-    @HystrixCommand(fallbackMethod = "stocksNotFound") // Hystrix circuit breaker for fault-tolernace demo
+    @CircuitBreaker(name = "stockService", fallbackMethod = "stocksNotFound") // Resilience4j circuit breaker for fault-tolerance demo
     public Map<String, StockDTO> getStockDTOs() {
         LOGGER.info("getStocksDTOs");
         ResponseEntity<List<StockDTO>> stockManagerResponse =
@@ -44,8 +44,8 @@ public class StockRepo {
                 .collect(Collectors.toMap(StockDTO::getProductId, Function.identity()));
     }
 
-    public Map<String, StockDTO> stocksNotFound() {
-        LOGGER.info("stocksNotFound *** FALLBACK ***");
-        return Collections.EMPTY_MAP;
+    public Map<String, StockDTO> stocksNotFound(Exception ex) {
+        LOGGER.info("stocksNotFound *** FALLBACK *** - {}", ex.getMessage());
+        return Collections.emptyMap();
     }
 }
